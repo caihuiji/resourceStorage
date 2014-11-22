@@ -4,7 +4,7 @@
  *  opts - object
  *      url - Number(in seconds) - 记载资源的回调
  *      userCache - Boolean - true - 是否使用缓存
- *      
+ *
  * cb - Function - 加载的完成回调
  *
  * ResourceStorage.clear()
