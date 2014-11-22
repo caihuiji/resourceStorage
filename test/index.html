@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="mocha.css">
+
+    <script src="http://1.url.cn/jslib/jquery/1.9.1/jquery.min.js"></script>
+</head>
+<body>
+    <script src="../src/resourceStorage.js"></script>
+
+
+    <div id="mocha"></div>
+
+
+    <script src="mocha.js"></script>
+    <script src="chai.js"></script>
+    <script>
+        mocha.ui('bdd');
+        mocha.reporter('html');
+    </script>
+    <script type="text/javascript">
+        var KEY = 'resourceStorage-key';
+
+        describe('resourceStorage' , function (){
+
+
+            before(function (){
+                localStorage.setItem(KEY , '');
+            })
+
+            it('can load file at same domain' , function (done){
+                resourceStorage.load('test.js' , function (){
+                    chai.expect(window.aa).to.equal('222');
+                    done();
+
+                })
+            });
+
+            it('can load file at same domain and generate cache' , function (done){
+                resourceStorage.load('test.js' , function (){
+                    setTimeout(function (){
+
+                        chai.expect(localStorage.getItem(KEY)).to.contain('222');
+
+                        done();
+                    },800)
+                })
+            });
+
+            it('can load file at differ domain ' , function (done){
+                resourceStorage.load('http://7.url.cn/edu/jslib/requirejs/2.1.6/require.min.js' , function (){
+                    chai.expect(window.define).not.null();
+                    done();
+                })
+            });
+
+            it('after 1.8s , auto clear expired cache ' , function (done){
+                resourceStorage.init({expire : 1 , lazyClear : 600}).load('test.js' , function (){
+                    setTimeout( function (){
+
+                    chai.expect(localStorage.getItem(KEY)).not.contain('222');
+                    done();
+                    } , 1800)
+                })
+            });
+
+
+            it('modify default function of generate ' , function (done){
+                resourceStorage.init({generateKey : function (){
+                    return 'testKey';
+                }}).load('test.js' , function (){
+                    setTimeout(function (){
+                        chai.expect(localStorage.getItem(KEY)).to.contain('testKey');
+                        done();
+                    },800)
+
+                })
+            });
+
+        });
+    </script>
+    <script>
+            mocha.run();
+    </script>
+</body>
+</html>
