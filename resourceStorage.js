@@ -1,7 +1,7 @@
 /*!
  *
  * ResourceStorage.load(opts , callback)
- *  opts - object
+ *  opts - object - 如是 string ,支持当作url
  *      url - Number(in seconds) - 记载资源的回调
  *      userCache - Boolean - true - 是否使用缓存
  *
