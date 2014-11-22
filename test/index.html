@@ -28,10 +28,11 @@
 
             before(function (){
                 localStorage.setItem(KEY , '');
+                ResourceStorage.config({}); // reset config config
             })
 
             it('can load file at same domain' , function (done){
-                resourceStorage.load('test.js' , function (){
+                ResourceStorage.load('test.js' , function (){
                     chai.expect(window.aa).to.equal('222');
                     done();
 
@@ -39,7 +40,7 @@
             });
 
             it('can load file at same domain and generate cache' , function (done){
-                resourceStorage.load('test.js' , function (){
+                ResourceStorage.load('test.js' , function (){
                     setTimeout(function (){
 
                         chai.expect(localStorage.getItem(KEY)).to.contain('222');
@@ -49,15 +50,40 @@
                 })
             });
 
+
+            it('use cache load ' , function (done){
+                var cache = {"test.js":{"content":"window.aa = '3333';","expire":new Date - 0 , version : ''}}
+                localStorage.setItem(KEY , JSON.stringify(cache))
+                ResourceStorage.config({}).load('test.js' , function (){
+                    setTimeout(function (){
+                        chai.expect(window.aa).to.equal('3333');
+                        done();
+                    },600)
+
+                })
+            });
+
+            it('no use cache load ' , function (done){
+                var cache = {"test.js":{"content":"window.aa = '3333';","expire":new Date - 0 , version : ''}}
+                localStorage.setItem(KEY , JSON.stringify(cache))
+                ResourceStorage.config({}).load({url : 'test.js' , useCache : false}, function (){
+                    setTimeout(function (){
+                        chai.expect(window.aa).to.equal('222');
+                        done();
+                    },600)
+
+                })
+            });
+
             it('can load file at differ domain ' , function (done){
-                resourceStorage.load('http://7.url.cn/edu/jslib/requirejs/2.1.6/require.min.js' , function (){
+                ResourceStorage.load('http://7.url.cn/edu/jslib/requirejs/2.1.6/require.min.js' , function (){
                     chai.expect(window.define).not.null();
                     done();
                 })
             });
 
             it('after 1.8s , auto clear expired cache ' , function (done){
-                resourceStorage.init({expire : 1 , lazyClear : 600}).load('test.js' , function (){
+                ResourceStorage.config({expire : 1 , lazyClear : 600}).load('test.js' , function (){
                     setTimeout( function (){
 
                     chai.expect(localStorage.getItem(KEY)).not.contain('222');
@@ -67,8 +93,8 @@
             });
 
 
-            it('modify default function of generate ' , function (done){
-                resourceStorage.init({generateKey : function (){
+            it('modify default function of generateKey ' , function (done){
+                ResourceStorage.config({generateKey : function (){
                     return 'testKey';
                 }}).load('test.js' , function (){
                     setTimeout(function (){
@@ -76,6 +102,27 @@
                         done();
                     },800)
 
+                })
+            });
+
+            it('modify default function of generateVersion and generateKey ' , function (done){
+                ResourceStorage.config({
+                    generateKey : function (){
+                        return 'testKey';
+                    } ,
+                    generateVersion : function (key){
+                        return key.match( /.+?\.([^\.]+)\.js/i)[1];
+                    }
+                    }).load('test.bb.js' , function (){
+                    chai.expect(window.bb).to.equal('222');
+                        ResourceStorage.load('test.dd.js' , function (){
+                            chai.expect(window.dd).to.equal('222');
+
+                            setTimeout(function (){
+                                chai.expect(localStorage.getItem(KEY)).to.contain('"version":"dd"');
+                                done();
+                            },800)
+                        });
                 })
             });
 

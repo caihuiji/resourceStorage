@@ -5078,7 +5078,7 @@ function filterLeaks(ok, globals) {
     if (/^d+/.test(key)) return false;
 
     // in firefox
-    // if runner runs in an iframe, this iframe's window.getInterface method not init at first
+    // if runner runs in an iframe, this iframe's window.getInterface method not config at first
     // it is assigned in some seconds
     if (global.navigator && /^getInterface/.test(key)) return false;
 
@@ -5793,7 +5793,7 @@ function highlight(js) {
     .replace(/('.*?')/gm, '<span class="string">$1</span>')
     .replace(/(\d+\.\d+)/gm, '<span class="number">$1</span>')
     .replace(/(\d+)/gm, '<span class="number">$1</span>')
-    .replace(/\bnew[ \t]+(\w+)/gm, '<span class="keyword">new</span> <span class="init">$1</span>')
+    .replace(/\bnew[ \t]+(\w+)/gm, '<span class="keyword">new</span> <span class="config">$1</span>')
     .replace(/\b(function|new|throw|return|var|if|else)\b/gm, '<span class="keyword">$1</span>')
 }
 

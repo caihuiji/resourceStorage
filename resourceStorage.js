@@ -1,25 +1,43 @@
+/*!
+ *
+ * ResourceStorage.load(opts , callback)
+ *  opts - object
+ *      url - Number(in seconds) - 记载资源的回调
+ *      userCache - Boolean - true - 是否使用缓存
+ *      
+ * cb - Function - 加载的完成回调
+ *
+ * ResourceStorage.clear()
+ *      清除 localStorage
+ *
+ * ResourceStorage.config(opts)
+ *      ResourceStorage 配置
+ *      opts - Object
+ *          generateKey - Number(in microseconds) - 存储时候，会调用次方法生成key,默认是url
+ *          generateVersion - Number(in seconds) -  存储时候，会调用次方法生成version,默认是'' ，后面用于校验两个资源是否相同版本
+ *          expire - Number(in microseconds) - 过期时间
+ *          lazyClear - Number(in microseconds) - 延迟处理过期的时间
+ *
+ *
+ *
+ */
+
 (function (root) {
 
 
     var KEY = 'resourceStorage-key';
 
     var defaultExpire = 7 * 3600 * 1000; // 7 天过期时间
-    var defaultLazyClear = 5000; // 7 天过期时间
+    var defaultLazyClear = 5000;
+
+    var expire , lazyClear;
 
     var currentDate = new Date - 0;
 
     var hasInit = false;
 
 
-    /**
-     *
-     * @param config
-     *      generateKey - function , 用于生成请求地址和缓存中资源的对应关系
-     *      expire - int , 重置过期时间 ,  单位  ms
-     *      lazyClear - int , 多少ms后启动过期清除 ,  单位 ms , 必须大于 500 毫秒
-     * @returns {{init: init, load: load, clear: clear}|*}
-     */
-    var init = function (config) {
+    var config = function (config) {
 
         hasInit = true;
 
@@ -31,13 +49,24 @@
         }
 
         config.generateKey && (storage.getKey = config.generateKey);
+        config.generateVersion && (storage.getVersion = config.generateVersion);
 
-        config.expire && (defaultExpire = config.expire - 0  );
-        config.lazyClear && (defaultLazyClear = config.lazyClear - 0 );
+        if(config.expire){
+            expire = config.expire;
+        }else {
+            expire = defaultExpire;
+        }
+
+        if(config.lazyClear){
+            lazyClear = config.lazyClear;
+        }else {
+            lazyClear = defaultLazyClear;
+        }
+
 
         storage.expiredRemove();
 
-        return resourceStorage;
+        return ResourceStorage;
     }
 
     var storage = {
@@ -47,7 +76,7 @@
         save: function (key, value) {
 
             if (key) {
-                this.data[storage.getKey(key)] = {content: value, expire: new Date - 0};
+                this.data[storage.getKey(key)] = {content: value , expire: new Date - 0 , version : storage.getVersion(key)};
             }
 
             if (this.storageTimeId) {
@@ -64,7 +93,7 @@
                     try {
                         storage.lb.setItem(KEY, itemData);
                     } catch (e) {
-                        storage.clear(true);
+                        localStorage.clear(); // clear all localStorage
                         storage.lb.setItem(KEY, itemData);
                     }
                 }
@@ -78,23 +107,23 @@
             return this.data[storage.getKey(key)];
         },
 
+        getVersion: function (key) {
+            return '';
+        },
+
         /**
          * all true 清除所有， false 清除 KEY 下的 item
          * @param all
          */
-        clear: function (all) {
+        clear: function () {
             this.data = {};
 
             if (this.storageTimeId) {
                 clearTimeout(this.storageTimeId);
             }
 
-            if (all) {
-                this.lb.clear();
-            } else {
-                this.lb.setItem(KEY, '');
+            this.lb.setItem(KEY, '');
 
-            }
         },
 
         getKey: function (key) {
@@ -115,13 +144,13 @@
                     return;
                 }
                 for (var key in storage.data) {
-                    if (new Date - storage.data[key].expire > defaultExpire) {
+                    if (new Date - storage.data[key].expire > expire) {
                         delete storage.data[key];
                     }
                 }
                 storage.save();
 
-            }, defaultLazyClear);
+            }, lazyClear);
         }
 
     }
@@ -183,7 +212,7 @@
 
     var load = function (opt, callback) {
         if (!hasInit) {
-            init({});
+            config({});
         }
 
 
@@ -199,13 +228,23 @@
         }
 
         var content , catchData = storage.getData(opt.url);
-        if (catchData && (content = catchData.content)) {
+
+
+        var useCache = true;
+        if( opt.hasOwnProperty('useCache')){
+            useCache = opt.useCache;
+        }
+
+        // 存在且version 相同
+        if (useCache && catchData && (content = catchData.content) &&  catchData.version == storage.getVersion(opt.url)) {
             loadFile.appendFile(type, content);
             callback(null);
             storage.updateExpire(opt.url);
             storage.save();
             return;
+
         }
+
         loadFile.ajax(opt.url, function (err, content) {
             if (err) {
                 var dom;
@@ -229,11 +268,11 @@
     }
 
 
-    root.resourceStorage = {
-        init: init,
+    root.ResourceStorage = {
+        config: config,
         load: load,
-        clear: function (all) {
-            storage.clear(all);
+        clear: function () {
+            storage.clear();
         }
     }
 }(window))
